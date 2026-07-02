@@ -156,17 +156,25 @@ export default function Ejercicios() {
 
                 {/* Acciones */}
                 <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/5">
-                  {/* Interruptor disponible */}
-                  <button
-                    onClick={() => toggleDisponible(ej)}
-                    className={`flex-1 text-xs py-2 rounded-lg font-semibold transition ${
-                      ej.disponible
-                        ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25'
-                        : 'bg-yellow-500/15 text-yellow-400 hover:bg-yellow-500/25'
-                    }`}
-                  >
-                    {ej.disponible ? 'Marcar en desarrollo' : 'Activar en la app'}
-                  </button>
+                  {/* Interruptor disponible: SOLO para los 4 ejercicios base
+                      (los que la app sabe detectar). Los nuevos no se activan
+                      porque la app aún no tiene su detección programada. */}
+                  {esFijo ? (
+                    <button
+                      onClick={() => toggleDisponible(ej)}
+                      className={`flex-1 text-xs py-2 rounded-lg font-semibold transition ${
+                        ej.disponible
+                          ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25'
+                          : 'bg-yellow-500/15 text-yellow-400 hover:bg-yellow-500/25'
+                      }`}
+                    >
+                      {ej.disponible ? 'Bloquear en la app' : 'Activar en la app'}
+                    </button>
+                  ) : (
+                    <div className="flex-1 text-xs py-2 rounded-lg font-semibold text-center bg-yellow-500/10 text-yellow-500/70">
+                      En desarrollo (detección pendiente)
+                    </div>
+                  )}
 
                   <button
                     onClick={() => abrirEditar(ej)}
@@ -190,7 +198,12 @@ export default function Ejercicios() {
 
                 {esFijo && (
                   <p className="text-gray-600 text-[11px] mt-2">
-                    Ejercicio base de la app (no se puede eliminar).
+                    Ejercicio base de la app (el admin puede activarlo o bloquearlo).
+                  </p>
+                )}
+                {!esFijo && (
+                  <p className="text-gray-600 text-[11px] mt-2">
+                    Aparece con candado en la app hasta que su detección se programe.
                   </p>
                 )}
               </div>
