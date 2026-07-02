@@ -15,11 +15,12 @@ export interface Cuenta {
   totalSesiones?: number
 }
 
-// Traer todas las cuentas CON sus relaciones
+// Traer todas las cuentas CON sus relaciones (Ocultando a los administradores)
 export async function obtenerCuentas(): Promise<Cuenta[]> {
   const { data: perfiles, error } = await supabase
     .from('profiles')
     .select('id, first_name, last_name, email, rol, codigo_entrenador, cuenta_bloqueada, created_at')
+    .neq('rol', 'admin') // <--- ESTA ES LA LÍNEA NUEVA QUE OCULTA AL ADMIN
     .order('created_at', { ascending: false })
 
   if (error || !perfiles) { console.error(error); return [] }
@@ -44,15 +45,12 @@ export async function obtenerCuentas(): Promise<Cuenta[]> {
     const cuenta: Cuenta = { ...p } as Cuenta
 
     if (p.rol === 'usuario') {
-      // Buscar su entrenador
       const con = conexiones?.find(c => c.usuario_id === p.id)
       cuenta.entrenadorNombre = con ? nombrePerfil(con.entrenador_id) : null
-      // Contar sus sesiones
       cuenta.totalSesiones = sesiones?.filter(s => s.profile_id === p.id).length || 0
     }
 
     if (p.rol === 'entrenador') {
-      // Buscar sus usuarios
       const sus = conexiones?.filter(c => c.entrenador_id === p.id) || []
       cuenta.usuariosConectados = sus.map(c => ({
         id: c.usuario_id,
@@ -296,4 +294,41 @@ export async function obtenerSesionesDeUsuario(usuarioId: string): Promise<Sesio
 
   const nombre = perfil ? `${perfil.first_name || ''} ${perfil.last_name || ''}`.trim() : 'Usuario'
   return sesiones.map(s => ({ ...s, usuario_nombre: nombre })) as SesionAdmin[]
+}
+// Agrega esto al final de tu archivo lib/adminService.ts
+
+export async function loginComoAdmin(email: string, clave: string): Promise<{ exito: boolean; error?: string }> {
+  try {
+    // 1. Iniciar sesión con Supabase Auth
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: clave,
+    })
+
+    if (error) return { exito: false, error: 'Credenciales incorrectas.' }
+    if (!data.user) return { exito: false, error: 'No se pudo obtener el usuario.' }
+
+    // 2. Verificar en la tabla profiles si el usuario tiene el rol 'admin'
+    const { data: perfil, error: errorPerfil } = await supabase
+      .from('profiles')
+      .select('rol')
+      .eq('id', data.user.id)
+      .single()
+
+    if (errorPerfil || !perfil) {
+      await supabase.auth.signOut()
+      return { exito: false, error: 'Error al verificar los permisos del perfil.' }
+    }
+
+    if (perfil.rol !== 'admin') {
+      // Si entra un usuario o entrenador normal, le cerramos la sesión y lo bloqueamos
+      await supabase.auth.signOut()
+      return { exito: false, error: 'Acceso denegado. No eres administrador.' }
+    }
+
+    return { exito: true }
+  } catch (err) {
+    console.error(err)
+    return { exito: false, error: 'Error inesperado en el servidor.' }
+  }
 }
