@@ -5,6 +5,7 @@ import Cuentas from './pages/Cuentas'
 import Sesiones from './pages/Sesiones'
 import Mensajes from './pages/Mensajes'
 import Layout from './components/Layout'
+import Ejercicios from './pages/Ejercicios'
 
 export default function App() {
   const [logueado, setLogueado] = useState(
@@ -26,6 +27,7 @@ export default function App() {
       {seccion === 'dashboard' && <Dashboard />}
       {seccion === 'cuentas' && <Cuentas />}
       {seccion === 'sesiones' && <Sesiones />}
+      {seccion === 'ejercicios' && <Ejercicios />}
       {seccion === 'mensajes' && <Mensajes />}
     </Layout>
   )

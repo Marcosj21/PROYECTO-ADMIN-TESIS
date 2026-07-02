@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { LayoutDashboard, Users, Activity, MessageSquare, LogOut, Menu, X } from 'lucide-react'
+// arriba, en el import de lucide-react, agrega Dumbbell:
+import { LayoutDashboard, Users, Activity, MessageSquare, LogOut, Menu, X, Dumbbell } from 'lucide-react'
+
 
 interface Props {
   children: React.ReactNode
@@ -11,12 +13,14 @@ interface Props {
 export default function Layout({ children, seccion, setSeccion, onLogout }: Props) {
   const [menuAbierto, setMenuAbierto] = useState(false)
 
-  const items = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { id: 'cuentas', label: 'Cuentas', icon: <Users size={20} /> },
-    { id: 'sesiones', label: 'Sesiones', icon: <Activity size={20} /> },
-    { id: 'mensajes', label: 'Mensajes', icon: <MessageSquare size={20} /> },
-  ]
+// en el array items, agrega:
+const items = [
+  { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+  { id: 'cuentas', label: 'Cuentas', icon: <Users size={20} /> },
+  { id: 'sesiones', label: 'Sesiones', icon: <Activity size={20} /> },
+  { id: 'ejercicios', label: 'Ejercicios', icon: <Dumbbell size={20} /> },
+  { id: 'mensajes', label: 'Mensajes', icon: <MessageSquare size={20} /> },
+]
 
   function seleccionar(id: string) {
     setSeccion(id)

@@ -332,3 +332,98 @@ export async function loginComoAdmin(email: string, clave: string): Promise<{ ex
     return { exito: false, error: 'Error inesperado en el servidor.' }
   }
 }
+// ============================================================
+// FUNCIONES DE EJERCICIOS — agrégalas al final de lib/adminService.ts
+// (gestión de ejercicios: listar, crear, editar, activar/desactivar, borrar)
+// ============================================================
+
+export interface EjercicioAdmin {
+  id: string
+  clave: string
+  nombre: string
+  musculo: string
+  requiere_camara: boolean
+  disponible: boolean
+  descripcion: string | null
+  created_at: string
+}
+
+// Traer TODOS los ejercicios (los que funcionan y los "en desarrollo")
+export async function obtenerEjercicios(): Promise<EjercicioAdmin[]> {
+  const { data, error } = await supabase
+    .from('ejercicios')
+    .select('*')
+    .order('created_at', { ascending: true })
+
+  if (error || !data) { console.error(error); return [] }
+  return data as EjercicioAdmin[]
+}
+
+// Crear un ejercicio nuevo. Por defecto queda "en desarrollo" (disponible=false),
+// porque la detección de ángulos hay que programarla en la app.
+export async function crearEjercicio(datos: {
+  clave: string
+  nombre: string
+  musculo: string
+  descripcion: string
+}): Promise<{ exito: boolean; error?: string }> {
+  // Validar que la clave no exista ya
+  const { data: existe } = await supabase
+    .from('ejercicios')
+    .select('id')
+    .eq('clave', datos.clave)
+    .maybeSingle()
+
+  if (existe) {
+    return { exito: false, error: 'Ya existe un ejercicio con esa clave.' }
+  }
+
+  const { error } = await supabase.from('ejercicios').insert({
+    clave: datos.clave,
+    nombre: datos.nombre,
+    musculo: datos.musculo,
+    descripcion: datos.descripcion,
+    requiere_camara: true,
+    disponible: false, // nuevo = en desarrollo
+  })
+
+  if (error) { console.error(error); return { exito: false, error: 'No se pudo crear el ejercicio.' } }
+  return { exito: true }
+}
+
+// Editar un ejercicio existente (nombre, músculo, descripción)
+export async function editarEjercicio(id: string, datos: {
+  nombre: string
+  musculo: string
+  descripcion: string
+}): Promise<boolean> {
+  const { error } = await supabase
+    .from('ejercicios')
+    .update({
+      nombre: datos.nombre,
+      musculo: datos.musculo,
+      descripcion: datos.descripcion,
+    })
+    .eq('id', id)
+
+  if (error) { console.error(error); return false }
+  return true
+}
+
+// Activar / desactivar la disponibilidad (el interruptor "en desarrollo")
+export async function cambiarDisponibilidad(id: string, disponible: boolean): Promise<boolean> {
+  const { error } = await supabase
+    .from('ejercicios')
+    .update({ disponible })
+    .eq('id', id)
+
+  if (error) { console.error(error); return false }
+  return true
+}
+
+// Borrar un ejercicio
+export async function eliminarEjercicio(id: string): Promise<boolean> {
+  const { error } = await supabase.from('ejercicios').delete().eq('id', id)
+  if (error) { console.error(error); return false }
+  return true
+}
