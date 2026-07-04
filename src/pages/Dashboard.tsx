@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   Users, UserCheck, Activity, TrendingUp, Dumbbell,
-  AlertTriangle, Award, Flame,
+  AlertTriangle, Award, Flame, CheckCircle2, XCircle, ListChecks,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -15,6 +15,9 @@ export default function Dashboard() {
   const [stats, setStats] = useState({
     totalUsuarios: 0, totalEntrenadores: 0, totalSesiones: 0,
     repsValidas: 0, repsInvalidas: 0,
+  })
+  const [ejerciciosStats, setEjerciciosStats] = useState({
+    total: 0, activos: 0, desactivados: 0,
   })
   const [ejerciciosData, setEjerciciosData] = useState<any[]>([])
   const [sesionesPorDia, setSesionesPorDia] = useState<any[]>([])
@@ -38,6 +41,19 @@ export default function Dashboard() {
       const { data: conexiones } = await supabase
         .from('entrenador_usuario')
         .select('entrenador_id, usuario_id')
+
+      // Conteo de ejercicios: cuántos activos vs desactivados/en desarrollo
+      const { data: ejerciciosTabla } = await supabase
+        .from('ejercicios')
+        .select('disponible')
+
+      const totalEj = ejerciciosTabla?.length || 0
+      const activosEj = ejerciciosTabla?.filter(e => e.disponible).length || 0
+      setEjerciciosStats({
+        total: totalEj,
+        activos: activosEj,
+        desactivados: totalEj - activosEj,
+      })
 
       const nombre = (id: string) => {
         const p = perfiles?.find(x => x.id === id)
@@ -114,6 +130,13 @@ export default function Dashboard() {
         <StatCard icon={<TrendingUp />} label="Calidad técnica" value={`${pctValidas}%`} />
       </div>
 
+      {/* Tarjetas de ejercicios: total / activos / desactivados */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+        <StatCard icon={<ListChecks />} label="Total de ejercicios" value={ejerciciosStats.total} />
+        <StatCard icon={<CheckCircle2 />} label="Activos en la app" value={ejerciciosStats.activos} colorValor="text-green-400" />
+        <StatCard icon={<XCircle />} label="Desactivados / en desarrollo" value={ejerciciosStats.desactivados} colorValor="text-yellow-500" />
+      </div>
+
       {/* Fila 1 de gráficas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <ChartCard title="Sesiones (últimos días)" icon={<Activity size={18} />}>
@@ -180,14 +203,14 @@ export default function Dashboard() {
   )
 }
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode, label: string, value: number | string }) {
+function StatCard({ icon, label, value, colorValor }: { icon: React.ReactNode, label: string, value: number | string, colorValor?: string }) {
   return (
     <div className="bg-[#1A1A1A] rounded-2xl p-6 border border-white/10 hover:border-yellow-400/40 transition">
       <div className="flex items-center justify-between mb-3">
         <span className="text-gray-400 text-sm">{label}</span>
         <span className="text-yellow-400">{icon}</span>
       </div>
-      <div className="text-3xl font-bold">{value}</div>
+      <div className={`text-3xl font-bold ${colorValor || ''}`}>{value}</div>
     </div>
   )
 }
