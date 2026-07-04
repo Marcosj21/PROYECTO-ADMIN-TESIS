@@ -1,7 +1,5 @@
 import { useState } from 'react'
-// arriba, en el import de lucide-react, agrega Dumbbell:
 import { LayoutDashboard, Users, Activity, MessageSquare, LogOut, Menu, X, Dumbbell } from 'lucide-react'
-
 
 interface Props {
   children: React.ReactNode
@@ -13,14 +11,13 @@ interface Props {
 export default function Layout({ children, seccion, setSeccion, onLogout }: Props) {
   const [menuAbierto, setMenuAbierto] = useState(false)
 
-// en el array items, agrega:
-const items = [
-  { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-  { id: 'cuentas', label: 'Cuentas', icon: <Users size={20} /> },
-  { id: 'sesiones', label: 'Sesiones', icon: <Activity size={20} /> },
-  { id: 'ejercicios', label: 'Ejercicios', icon: <Dumbbell size={20} /> },
-  { id: 'mensajes', label: 'Mensajes', icon: <MessageSquare size={20} /> },
-]
+  const items = [
+    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+    { id: 'cuentas', label: 'Cuentas', icon: <Users size={20} /> },
+    { id: 'sesiones', label: 'Sesiones', icon: <Activity size={20} /> },
+    { id: 'ejercicios', label: 'Ejercicios', icon: <Dumbbell size={20} /> },
+    { id: 'mensajes', label: 'Mensajes', icon: <MessageSquare size={20} /> },
+  ]
 
   function seleccionar(id: string) {
     setSeccion(id)
@@ -32,6 +29,7 @@ const items = [
       {/* Botón hamburguesa — solo en móvil */}
       <button
         onClick={() => setMenuAbierto(true)}
+        aria-label="Abrir menú"
         className="lg:hidden fixed top-4 left-4 z-30 bg-[#1A1A1A] border border-white/10 rounded-xl p-2 text-yellow-400"
       >
         <Menu size={22} />
@@ -52,22 +50,23 @@ const items = [
         transform transition-transform duration-300
         ${menuAbierto ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="p-6 border-b border-white/10 flex items-center justify-between">
+        <header className="p-6 border-b border-white/10 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-black tracking-widest text-yellow-400">BIOSMART</h1>
             <p className="text-xs text-gray-500 mt-1">Administración</p>
           </div>
           {/* Botón cerrar — solo móvil */}
-          <button onClick={() => setMenuAbierto(false)} className="lg:hidden text-gray-400">
+          <button onClick={() => setMenuAbierto(false)} aria-label="Cerrar menú" className="lg:hidden text-gray-400">
             <X size={22} />
           </button>
-        </div>
+        </header>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav aria-label="Navegación principal" className="flex-1 p-4 space-y-2">
           {items.map(item => (
             <button
               key={item.id}
               onClick={() => seleccionar(item.id)}
+              aria-current={seccion === item.id ? 'page' : undefined}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${
                 seccion === item.id
                   ? 'bg-yellow-400 text-black font-semibold'

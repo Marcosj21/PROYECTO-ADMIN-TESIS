@@ -7,6 +7,11 @@ import {
 // Detalle completo de una sesión: métricas, video con línea de tiempo,
 // repeticiones, errores y diagnóstico de IA.
 // Se usa tanto en la sección Sesiones como en Mensajes (popup).
+//
+// FIX: el modal ahora tiene una altura MÁXIMA fija (max-h-[92vh]) con
+// scroll SOLO en el contenido interno. Antes dependía del zoom del
+// navegador para verse completo; ahora se ve igual sin importar el zoom
+// ni el tamaño de pantalla (celular, tablet o escritorio).
 export default function DetalleSesion({ sesion, onClose }: { sesion: SesionAdmin, onClose: () => void }) {
   const total = (sesion.reps_validas || 0) + (sesion.reps_invalidas || 0)
   const q = total > 0 ? Math.round((sesion.reps_validas / total) * 100) : 0
@@ -14,22 +19,34 @@ export default function DetalleSesion({ sesion, onClose }: { sesion: SesionAdmin
   const errores = Array.isArray(sesion.errores) ? sesion.errores : []
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-2 md:p-4 z-50 overflow-auto" onClick={onClose}>
-      <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 w-full max-w-lg my-4 md:my-8" onClick={e => e.stopPropagation()}>
-        {/* Cabecera */}
-        <div className="flex justify-between items-center p-4 md:p-6 border-b border-white/10 sticky top-0 bg-[#1A1A1A] rounded-t-2xl z-10">
-          <div>
-            <h2 className="text-lg md:text-xl font-bold">{sesion.ejercicio}</h2>
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center p-2 md:p-4 z-50"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Detalle de la sesión de ${sesion.ejercicio}`}
+        className="bg-[#1A1A1A] rounded-2xl border border-white/10 w-full max-w-lg max-h-[92vh] flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Cabecera fija (no se mueve al hacer scroll del contenido) */}
+        <header className="flex justify-between items-center p-4 md:p-6 border-b border-white/10 shrink-0">
+          <div className="min-w-0">
+            <h2 className="text-lg md:text-xl font-bold truncate">{sesion.ejercicio}</h2>
             <p className="text-gray-400 text-xs md:text-sm flex items-center gap-2 mt-1 flex-wrap">
-              <User size={14} /> {sesion.usuario_nombre}
-              <span className="mx-1">·</span>
-              <Calendar size={14} /> {new Date(sesion.created_at).toLocaleDateString('es-EC')}
+              <span className="flex items-center gap-1"><User size={14} /> {sesion.usuario_nombre}</span>
+              <span className="hidden sm:inline">·</span>
+              <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(sesion.created_at).toLocaleDateString('es-EC')}</span>
             </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={22} /></button>
-        </div>
+          <button onClick={onClose} aria-label="Cerrar" className="text-gray-400 hover:text-white shrink-0 ml-3">
+            <X size={22} />
+          </button>
+        </header>
 
-        <div className="p-4 md:p-6 space-y-6">
+        {/* Contenido con scroll propio: aquí es donde se desplaza todo */}
+        <div className="p-4 md:p-6 space-y-6 overflow-y-auto">
           {/* Métricas */}
           <div className="grid grid-cols-3 gap-2 md:gap-3">
             <MetricaBox label="Total reps" valor={`${total}`} color="text-white" icon={<Activity size={18} />} />
@@ -48,8 +65,7 @@ export default function DetalleSesion({ sesion, onClose }: { sesion: SesionAdmin
                   controlsList="nodownload"
                   preload="metadata"
                   playsInline
-                  className="rounded-xl bg-black"
-                  style={{ maxHeight: 360, maxWidth: '100%', width: 'auto' }}
+                  className="rounded-xl bg-black max-h-[220px] sm:max-h-[280px] md:max-h-[360px] max-w-full w-auto"
                 />
               </div>
               <p className="text-gray-500 text-xs mt-2 text-center">Usa la barra de progreso para adelantar o retroceder el video.</p>
@@ -64,22 +80,22 @@ export default function DetalleSesion({ sesion, onClose }: { sesion: SesionAdmin
           {reps.length > 0 && (
             <div>
               <h3 className="font-semibold mb-3">Detalle de repeticiones</h3>
-              <div className="space-y-2 max-h-60 overflow-auto">
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                 {reps.map((rep: any, i: number) => {
                   const valida = rep.valida === true
                   const razon = rep.razon || ''
                   return (
                     <div key={i} className={`flex items-center gap-3 p-3 rounded-lg ${valida ? 'bg-green-400/5' : 'bg-red-400/5'}`}>
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${valida ? 'bg-green-400/20 text-green-400' : 'bg-red-400/20 text-red-400'}`}>
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${valida ? 'bg-green-400/20 text-green-400' : 'bg-red-400/20 text-red-400'}`}>
                         {i + 1}
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <span className={`text-sm font-semibold ${valida ? 'text-green-400' : 'text-red-400'}`}>
                           {valida ? 'Rep válida' : 'Rep no válida'}
                         </span>
                         {razon && <p className="text-gray-400 text-xs">{razon}</p>}
                       </div>
-                      {valida ? <CheckCircle size={16} className="text-green-400" /> : <XCircle size={16} className="text-red-400" />}
+                      {valida ? <CheckCircle size={16} className="text-green-400 shrink-0" /> : <XCircle size={16} className="text-red-400 shrink-0" />}
                     </div>
                   )
                 })}

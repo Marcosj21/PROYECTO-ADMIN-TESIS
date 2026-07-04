@@ -55,12 +55,12 @@ export default function Cuentas() {
 
       {/* Controles: filtro + búsqueda */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
           {(['todos', 'usuario', 'entrenador'] as const).map(f => (
             <button
               key={f}
               onClick={() => setFiltro(f)}
-              className={`px-4 py-2 rounded-xl capitalize transition ${
+              className={`px-4 py-2 rounded-xl capitalize transition whitespace-nowrap ${
                 filtro === f ? 'bg-yellow-400 text-black font-semibold' : 'bg-[#1A1A1A] text-gray-400 hover:text-white'
               }`}
             >
@@ -70,7 +70,9 @@ export default function Cuentas() {
         </div>
         <div className="flex-1 relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <label htmlFor="buscar-cuenta" className="sr-only">Buscar por nombre o correo</label>
           <input
+            id="buscar-cuenta"
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre o correo..."
@@ -79,88 +81,146 @@ export default function Cuentas() {
         </div>
       </div>
 
-      {/* Tabla */}
       {cargando ? (
         <div className="text-yellow-400 text-center py-12">Cargando cuentas...</div>
+      ) : cuentasFiltradas.length === 0 ? (
+        <div className="text-center text-gray-500 py-12">No se encontraron cuentas</div>
       ) : (
-        <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 overflow-x-auto">
-          <table className="w-full min-w-[700px]">
-            <thead>
-              <tr className="border-b border-white/10 text-left text-gray-400 text-sm">
-                <th className="p-4">Nombre</th>
-                <th className="p-4">Correo</th>
-                <th className="p-4">Rol</th>
-                <th className="p-4">Relación</th>
-                <th className="p-4">Estado</th>
-                <th className="p-4 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cuentasFiltradas.map(c => (
-                <tr key={c.id} className="border-b border-white/5 hover:bg-white/5 transition">
-                  <td className="p-4">
-                    <button onClick={() => setDetalle(c)} className="flex items-center gap-3 hover:text-yellow-400">
-                      <div className="w-9 h-9 rounded-full bg-yellow-400 text-black flex items-center justify-center font-bold">
-                        {(c.first_name || 'U')[0].toUpperCase()}
-                      </div>
-                      <span className="font-medium">{c.first_name} {c.last_name}</span>
-                    </button>
-                  </td>
-                  <td className="p-4 text-gray-400">{c.email}</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
-                      c.rol === 'entrenador' ? 'bg-yellow-400/15 text-yellow-400' : 'bg-blue-400/15 text-blue-400'
-                    }`}>
-                      {c.rol === 'entrenador' ? 'Entrenador' : c.rol === 'usuario' ? 'Usuario' : 'Sin rol'}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    {c.rol === 'usuario' && (
-                      <span className="text-sm text-gray-400">
-                        {c.entrenadorNombre
-                          ? <>Entrenador: <span className="text-white">{c.entrenadorNombre}</span></>
-                          : <span className="text-gray-600">Sin entrenador</span>}
-                      </span>
-                    )}
-                    {c.rol === 'entrenador' && (
-                      <span className="text-sm text-gray-400">
-                        <span className="text-yellow-400 font-semibold">{c.usuariosConectados?.length || 0}</span> usuarios
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    {c.cuenta_bloqueada
-                      ? <span className="text-red-400 text-sm flex items-center gap-1"><Ban size={14} /> Bloqueado</span>
-                      : <span className="text-green-400 text-sm flex items-center gap-1"><CheckCircle size={14} /> Activo</span>}
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => onBloquear(c)}
-                        title={c.cuenta_bloqueada ? 'Desbloquear' : 'Bloquear'}
-                        className={`p-2 rounded-lg transition ${
-                          c.cuenta_bloqueada ? 'text-green-400 hover:bg-green-400/10' : 'text-orange-400 hover:bg-orange-400/10'
-                        }`}
-                      >
-                        {c.cuenta_bloqueada ? <CheckCircle size={18} /> : <Ban size={18} />}
-                      </button>
-                      <button
-                        onClick={() => onEliminar(c)}
-                        title="Eliminar"
-                        className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
+        <>
+          {/* ── VISTA MÓVIL: tarjetas apiladas (sin scroll horizontal) ── */}
+          <div className="space-y-3 md:hidden">
+            {cuentasFiltradas.map(c => (
+              <div key={c.id} className="bg-[#1A1A1A] rounded-2xl border border-white/10 p-4">
+                <button onClick={() => setDetalle(c)} className="flex items-center gap-3 w-full text-left mb-3">
+                  <div className="w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center font-bold shrink-0">
+                    {(c.first_name || 'U')[0].toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{c.first_name} {c.last_name}</div>
+                    <div className="text-gray-400 text-xs truncate">{c.email}</div>
+                  </div>
+                </button>
+
+                <div className="flex items-center justify-between mb-3">
+                  <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                    c.rol === 'entrenador' ? 'bg-yellow-400/15 text-yellow-400' : 'bg-blue-400/15 text-blue-400'
+                  }`}>
+                    {c.rol === 'entrenador' ? 'Entrenador' : c.rol === 'usuario' ? 'Usuario' : 'Sin rol'}
+                  </span>
+                  {c.cuenta_bloqueada
+                    ? <span className="text-red-400 text-xs flex items-center gap-1"><Ban size={13} /> Bloqueado</span>
+                    : <span className="text-green-400 text-xs flex items-center gap-1"><CheckCircle size={13} /> Activo</span>}
+                </div>
+
+                <div className="text-xs text-gray-400 mb-3">
+                  {c.rol === 'usuario' && (
+                    c.entrenadorNombre
+                      ? <>Entrenador: <span className="text-white">{c.entrenadorNombre}</span></>
+                      : <span className="text-gray-600">Sin entrenador</span>
+                  )}
+                  {c.rol === 'entrenador' && (
+                    <><span className="text-yellow-400 font-semibold">{c.usuariosConectados?.length || 0}</span> usuarios conectados</>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => onBloquear(c)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-1 ${
+                      c.cuenta_bloqueada ? 'bg-green-400/15 text-green-400' : 'bg-orange-400/15 text-orange-400'
+                    }`}
+                  >
+                    {c.cuenta_bloqueada ? <><CheckCircle size={15} /> Desbloquear</> : <><Ban size={15} /> Bloquear</>}
+                  </button>
+                  <button
+                    onClick={() => onEliminar(c)}
+                    className="p-2 rounded-lg bg-red-400/10 text-red-400"
+                    aria-label="Eliminar cuenta"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── VISTA TABLET/DESKTOP: tabla normal ── */}
+          <div className="hidden md:block bg-[#1A1A1A] rounded-2xl border border-white/10 overflow-x-auto">
+            <table className="w-full min-w-[700px]">
+              <thead>
+                <tr className="border-b border-white/10 text-left text-gray-400 text-sm">
+                  <th scope="col" className="p-4">Nombre</th>
+                  <th scope="col" className="p-4">Correo</th>
+                  <th scope="col" className="p-4">Rol</th>
+                  <th scope="col" className="p-4">Relación</th>
+                  <th scope="col" className="p-4">Estado</th>
+                  <th scope="col" className="p-4 text-right">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {cuentasFiltradas.length === 0 && (
-            <div className="text-center text-gray-500 py-12">No se encontraron cuentas</div>
-          )}
-        </div>
+              </thead>
+              <tbody>
+                {cuentasFiltradas.map(c => (
+                  <tr key={c.id} className="border-b border-white/5 hover:bg-white/5 transition">
+                    <td className="p-4">
+                      <button onClick={() => setDetalle(c)} className="flex items-center gap-3 hover:text-yellow-400">
+                        <div className="w-9 h-9 rounded-full bg-yellow-400 text-black flex items-center justify-center font-bold">
+                          {(c.first_name || 'U')[0].toUpperCase()}
+                        </div>
+                        <span className="font-medium">{c.first_name} {c.last_name}</span>
+                      </button>
+                    </td>
+                    <td className="p-4 text-gray-400">{c.email}</td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
+                        c.rol === 'entrenador' ? 'bg-yellow-400/15 text-yellow-400' : 'bg-blue-400/15 text-blue-400'
+                      }`}>
+                        {c.rol === 'entrenador' ? 'Entrenador' : c.rol === 'usuario' ? 'Usuario' : 'Sin rol'}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      {c.rol === 'usuario' && (
+                        <span className="text-sm text-gray-400">
+                          {c.entrenadorNombre
+                            ? <>Entrenador: <span className="text-white">{c.entrenadorNombre}</span></>
+                            : <span className="text-gray-600">Sin entrenador</span>}
+                        </span>
+                      )}
+                      {c.rol === 'entrenador' && (
+                        <span className="text-sm text-gray-400">
+                          <span className="text-yellow-400 font-semibold">{c.usuariosConectados?.length || 0}</span> usuarios
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      {c.cuenta_bloqueada
+                        ? <span className="text-red-400 text-sm flex items-center gap-1"><Ban size={14} /> Bloqueado</span>
+                        : <span className="text-green-400 text-sm flex items-center gap-1"><CheckCircle size={14} /> Activo</span>}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => onBloquear(c)}
+                          title={c.cuenta_bloqueada ? 'Desbloquear' : 'Bloquear'}
+                          className={`p-2 rounded-lg transition ${
+                            c.cuenta_bloqueada ? 'text-green-400 hover:bg-green-400/10' : 'text-orange-400 hover:bg-orange-400/10'
+                          }`}
+                        >
+                          {c.cuenta_bloqueada ? <CheckCircle size={18} /> : <Ban size={18} />}
+                        </button>
+                        <button
+                          onClick={() => onEliminar(c)}
+                          title="Eliminar"
+                          className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Panel de detalle */}
@@ -176,20 +236,26 @@ function DetalleCuenta({ cuenta, onClose, onEliminar, onBloquear }: {
 }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div className="bg-[#1A1A1A] rounded-2xl border border-white/10 w-full max-w-lg p-8" onClick={e => e.stopPropagation()}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Detalle de la cuenta de ${cuenta.first_name}`}
+        className="bg-[#1A1A1A] rounded-2xl border border-white/10 w-full max-w-lg max-h-[92vh] overflow-y-auto p-6 md:p-8"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-yellow-400 text-black flex items-center justify-center text-2xl font-bold">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-16 h-16 rounded-full bg-yellow-400 text-black flex items-center justify-center text-2xl font-bold shrink-0">
               {(cuenta.first_name || 'U')[0].toUpperCase()}
             </div>
-            <div>
-              <h2 className="text-xl font-bold">{cuenta.first_name} {cuenta.last_name}</h2>
+            <div className="min-w-0">
+              <h2 className="text-xl font-bold truncate">{cuenta.first_name} {cuenta.last_name}</h2>
               <span className={`text-xs ${cuenta.rol === 'entrenador' ? 'text-yellow-400' : 'text-blue-400'}`}>
                 {cuenta.rol === 'entrenador' ? 'Entrenador' : 'Usuario'}
               </span>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-white"><X size={22} /></button>
+          <button onClick={onClose} aria-label="Cerrar" className="text-gray-400 hover:text-white shrink-0 ml-3"><X size={22} /></button>
         </div>
 
         <div className="space-y-3 mb-6">
@@ -219,7 +285,7 @@ function DetalleCuenta({ cuenta, onClose, onEliminar, onBloquear }: {
                 <span className="text-gray-400">Usuarios conectados ({cuenta.usuariosConectados?.length || 0}):</span>
               </div>
               {cuenta.usuariosConectados && cuenta.usuariosConectados.length > 0 ? (
-                <div className="flex flex-wrap gap-2 ml-7">
+                <div className="flex flex-wrap gap-2 sm:ml-7">
                   {cuenta.usuariosConectados.map(u => (
                     <span key={u.id} className="px-3 py-1 rounded-lg bg-white/5 text-sm text-white">
                       {u.nombre}
@@ -227,13 +293,13 @@ function DetalleCuenta({ cuenta, onClose, onEliminar, onBloquear }: {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-sm ml-7">Ningún usuario conectado todavía</p>
+                <p className="text-gray-500 text-sm sm:ml-7">Ningún usuario conectado todavía</p>
               )}
             </div>
           )}
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button onClick={onBloquear} className="flex-1 py-3 rounded-xl bg-orange-400/15 text-orange-400 font-semibold hover:bg-orange-400/25 transition">
             {cuenta.cuenta_bloqueada ? 'Desbloquear' : 'Bloquear'}
           </button>
@@ -248,10 +314,10 @@ function DetalleCuenta({ cuenta, onClose, onEliminar, onBloquear }: {
 
 function Dato({ icon, label, valor }: { icon: React.ReactNode, label: string, valor: string }) {
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <span className="text-gray-500">{icon}</span>
-      <span className="text-gray-400 w-40">{label}:</span>
-      <span className="text-white font-medium">{valor}</span>
+    <div className="flex items-start sm:items-center gap-3 text-sm">
+      <span className="text-gray-500 mt-0.5 sm:mt-0">{icon}</span>
+      <span className="text-gray-400 w-32 sm:w-40 shrink-0">{label}:</span>
+      <span className="text-white font-medium break-words">{valor}</span>
     </div>
   )
 }
