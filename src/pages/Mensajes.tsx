@@ -4,6 +4,7 @@ import {
   type Conversacion, type MensajeAdmin, type SesionAdmin,
 } from '../lib/adminService'
 import DetalleSesion from '../components/DetalleSesion'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { MessageSquare, ArrowLeft, Dumbbell, Search } from 'lucide-react'
 
 export default function Mensajes() {
@@ -15,10 +16,13 @@ export default function Mensajes() {
   const [cargandoChat, setCargandoChat] = useState(false)
   const [sesionPopup, setSesionPopup] = useState<SesionAdmin | null>(null)
 
+  // Reemplaza a window.alert() cuando no se puede cargar una sesión
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
   async function abrirEjercicio(sesionId: string) {
     const sesion = await obtenerSesionPorId(sesionId)
     if (sesion) setSesionPopup(sesion)
-    else alert('No se pudo cargar el ejercicio')
+    else setErrorMsg('No se pudo cargar el ejercicio. Intenta de nuevo.')
   }
 
   useEffect(() => { cargar() }, [])
@@ -53,7 +57,9 @@ export default function Mensajes() {
         <div className={`lg:col-span-1 ${activa ? 'hidden lg:block' : 'block'}`}>
           <div className="relative mb-4">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+            <label htmlFor="buscar-persona" className="sr-only">Buscar persona</label>
             <input
+              id="buscar-persona"
               value={busqueda}
               onChange={e => setBusqueda(e.target.value)}
               placeholder="Buscar persona..."
@@ -155,6 +161,19 @@ export default function Mensajes() {
 
       {/* Popup del ejercicio (al tocar una tarjeta en el chat) */}
       {sesionPopup && <DetalleSesion sesion={sesionPopup} onClose={() => setSesionPopup(null)} />}
+
+      {/* Modal de alerta — reemplaza alert() */}
+      {errorMsg && (
+        <ConfirmDialog
+          open
+          title="Ocurrió un problema"
+          message={errorMsg}
+          confirmText="Entendido"
+          danger
+          onConfirm={() => setErrorMsg(null)}
+          onCancel={() => setErrorMsg(null)}
+        />
+      )}
     </div>
   )
 }

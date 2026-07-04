@@ -3,10 +3,14 @@ import {
   obtenerCuentas, bloquearCuenta, eliminarCuenta,
   type Cuenta,
 } from '../lib/adminService'
+import ConfirmDialog from '../components/ConfirmDialog'
 import {
   Search, Trash2, Ban, CheckCircle, Shield, User,
   Mail, Calendar, Hash, X, UserCheck, Activity, Users,
 } from 'lucide-react'
+
+// Acción pendiente de confirmación (bloquear/desbloquear o eliminar)
+type AccionPendiente = { tipo: 'bloquear' | 'eliminar', cuenta: Cuenta }
 
 export default function Cuentas() {
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
@@ -14,6 +18,10 @@ export default function Cuentas() {
   const [filtro, setFiltro] = useState<'todos' | 'usuario' | 'entrenador'>('todos')
   const [busqueda, setBusqueda] = useState('')
   const [detalle, setDetalle] = useState<Cuenta | null>(null)
+
+  // Reemplazan a window.confirm() / window.alert()
+  const [accionPendiente, setAccionPendiente] = useState<AccionPendiente | null>(null)
+  const [mensaje, setMensaje] = useState<string | null>(null)
 
   useEffect(() => { cargar() }, [])
 
@@ -24,19 +32,30 @@ export default function Cuentas() {
     setCargando(false)
   }
 
-  async function onBloquear(c: Cuenta) {
-    const accion = c.cuenta_bloqueada ? 'desbloquear' : 'bloquear'
-    if (!confirm(`¿Seguro que quieres ${accion} a ${c.first_name}?`)) return
-    const ok = await bloquearCuenta(c.id, !c.cuenta_bloqueada)
-    if (ok) cargar()
-    else alert('No se pudo actualizar')
+  // En vez de bloquear/eliminar directo, pedimos confirmación con el modal propio
+  function pedirBloquear(c: Cuenta) {
+    setAccionPendiente({ tipo: 'bloquear', cuenta: c })
   }
 
-  async function onEliminar(c: Cuenta) {
-    if (!confirm(`¿Eliminar la cuenta de ${c.first_name}? Podrá volver a registrarse. Esta acción no se puede deshacer.`)) return
-    const ok = await eliminarCuenta(c.id)
-    if (ok) { setDetalle(null); cargar() }
-    else alert('No se pudo eliminar')
+  function pedirEliminar(c: Cuenta) {
+    setAccionPendiente({ tipo: 'eliminar', cuenta: c })
+  }
+
+  // Se ejecuta solo cuando el usuario confirma en el modal
+  async function ejecutarAccionPendiente() {
+    if (!accionPendiente) return
+    const { tipo, cuenta: c } = accionPendiente
+    setAccionPendiente(null)
+
+    if (tipo === 'bloquear') {
+      const ok = await bloquearCuenta(c.id, !c.cuenta_bloqueada)
+      if (ok) cargar()
+      else setMensaje('No se pudo actualizar la cuenta. Intenta de nuevo.')
+    } else {
+      const ok = await eliminarCuenta(c.id)
+      if (ok) { setDetalle(null); cargar() }
+      else setMensaje('No se pudo eliminar la cuenta. Intenta de nuevo.')
+    }
   }
 
   const cuentasFiltradas = cuentas
@@ -125,7 +144,7 @@ export default function Cuentas() {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onBloquear(c)}
+                    onClick={() => pedirBloquear(c)}
                     className={`flex-1 py-2 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-1 ${
                       c.cuenta_bloqueada ? 'bg-green-400/15 text-green-400' : 'bg-orange-400/15 text-orange-400'
                     }`}
@@ -133,7 +152,7 @@ export default function Cuentas() {
                     {c.cuenta_bloqueada ? <><CheckCircle size={15} /> Desbloquear</> : <><Ban size={15} /> Bloquear</>}
                   </button>
                   <button
-                    onClick={() => onEliminar(c)}
+                    onClick={() => pedirEliminar(c)}
                     className="p-2 rounded-lg bg-red-400/10 text-red-400"
                     aria-label="Eliminar cuenta"
                   >
@@ -198,7 +217,7 @@ export default function Cuentas() {
                     <td className="p-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => onBloquear(c)}
+                          onClick={() => pedirBloquear(c)}
                           title={c.cuenta_bloqueada ? 'Desbloquear' : 'Bloquear'}
                           className={`p-2 rounded-lg transition ${
                             c.cuenta_bloqueada ? 'text-green-400 hover:bg-green-400/10' : 'text-orange-400 hover:bg-orange-400/10'
@@ -207,7 +226,7 @@ export default function Cuentas() {
                           {c.cuenta_bloqueada ? <CheckCircle size={18} /> : <Ban size={18} />}
                         </button>
                         <button
-                          onClick={() => onEliminar(c)}
+                          onClick={() => pedirEliminar(c)}
                           title="Eliminar"
                           className="p-2 rounded-lg text-red-400 hover:bg-red-400/10 transition"
                         >
@@ -225,7 +244,47 @@ export default function Cuentas() {
 
       {/* Panel de detalle */}
       {detalle && (
-        <DetalleCuenta cuenta={detalle} onClose={() => setDetalle(null)} onEliminar={() => onEliminar(detalle)} onBloquear={() => onBloquear(detalle)} />
+        <DetalleCuenta
+          cuenta={detalle}
+          onClose={() => setDetalle(null)}
+          onEliminar={() => pedirEliminar(detalle)}
+          onBloquear={() => pedirBloquear(detalle)}
+        />
+      )}
+
+      {/* Modal de CONFIRMACIÓN (bloquear/desbloquear/eliminar) — reemplaza confirm() */}
+      {accionPendiente && (
+        <ConfirmDialog
+          open
+          title={
+            accionPendiente.tipo === 'eliminar'
+              ? 'Eliminar cuenta'
+              : accionPendiente.cuenta.cuenta_bloqueada ? 'Desbloquear cuenta' : 'Bloquear cuenta'
+          }
+          message={
+            accionPendiente.tipo === 'eliminar'
+              ? `¿Eliminar la cuenta de ${accionPendiente.cuenta.first_name}? Podrá volver a registrarse. Esta acción no se puede deshacer.`
+              : `¿Seguro que quieres ${accionPendiente.cuenta.cuenta_bloqueada ? 'desbloquear' : 'bloquear'} a ${accionPendiente.cuenta.first_name}?`
+          }
+          confirmText={accionPendiente.tipo === 'eliminar' ? 'Eliminar' : 'Confirmar'}
+          cancelText="Cancelar"
+          danger={accionPendiente.tipo === 'eliminar'}
+          onConfirm={ejecutarAccionPendiente}
+          onCancel={() => setAccionPendiente(null)}
+        />
+      )}
+
+      {/* Modal de ALERTA (mensajes de error) — reemplaza alert() */}
+      {mensaje && (
+        <ConfirmDialog
+          open
+          title="Ocurrió un problema"
+          message={mensaje}
+          confirmText="Entendido"
+          danger
+          onConfirm={() => setMensaje(null)}
+          onCancel={() => setMensaje(null)}
+        />
       )}
     </div>
   )

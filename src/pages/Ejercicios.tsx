@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, Lock, Check, Trash2, Pencil, X, Dumbbell } from 'lucide-react'
+import ConfirmDialog from '../components/ConfirmDialog'
 import {
   obtenerEjercicios,
   crearEjercicio,
@@ -25,6 +26,9 @@ export default function Ejercicios() {
   const [descripcion, setDescripcion] = useState('')
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
+
+  // Reemplaza a window.confirm() para eliminar un ejercicio
+  const [porBorrar, setPorBorrar] = useState<EjercicioAdmin | null>(null)
 
   useEffect(() => { cargar() }, [])
 
@@ -94,8 +98,15 @@ export default function Ejercicios() {
     cargar()
   }
 
-  async function borrar(ej: EjercicioAdmin) {
-    if (!confirm(`¿Eliminar el ejercicio "${ej.nombre}"? No se puede deshacer.`)) return
+  // Antes usaba window.confirm(); ahora solo abre el modal propio
+  function pedirBorrar(ej: EjercicioAdmin) {
+    setPorBorrar(ej)
+  }
+
+  async function confirmarBorrado() {
+    if (!porBorrar) return
+    const ej = porBorrar
+    setPorBorrar(null)
     await eliminarEjercicio(ej.id)
     cargar()
   }
@@ -187,7 +198,7 @@ export default function Ejercicios() {
                   {/* Solo se pueden borrar los que NO son de los 4 fijos */}
                   {!esFijo && (
                     <button
-                      onClick={() => borrar(ej)}
+                      onClick={() => pedirBorrar(ej)}
                       className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition"
                       title="Eliminar"
                     >
@@ -215,7 +226,7 @@ export default function Ejercicios() {
       {/* Modal del formulario */}
       {mostrarForm && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-[#1A1A1A] border border-white/10 rounded-2xl p-6 w-full max-w-md max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold text-white">
                 {editando ? 'Editar ejercicio' : 'Nuevo ejercicio'}
@@ -291,6 +302,20 @@ export default function Ejercicios() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Modal de confirmación al eliminar — reemplaza confirm() */}
+      {porBorrar && (
+        <ConfirmDialog
+          open
+          title="Eliminar ejercicio"
+          message={`¿Eliminar el ejercicio "${porBorrar.nombre}"? No se puede deshacer.`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          danger
+          onConfirm={confirmarBorrado}
+          onCancel={() => setPorBorrar(null)}
+        />
       )}
     </div>
   )
