@@ -2,9 +2,9 @@ import { supabase } from './supabase'
 
 export interface Cuenta {
   id: string
-  first_name: string
-  last_name: string
-  email: string
+  nombre: string
+  apellido: string
+  correo: string
   rol: string
   codigo_entrenador: string | null
   cuenta_bloqueada: boolean
@@ -18,8 +18,8 @@ export interface Cuenta {
 // Traer todas las cuentas CON sus relaciones (Ocultando a los administradores)
 export async function obtenerCuentas(): Promise<Cuenta[]> {
   const { data: perfiles, error } = await supabase
-    .from('profiles')
-    .select('id, first_name, last_name, email, rol, codigo_entrenador, cuenta_bloqueada, created_at')
+    .from('perfiles')
+    .select('id, nombre, apellido, correo, rol, codigo_entrenador, cuenta_bloqueada, created_at')
     .neq('rol', 'admin') // <--- ESTA ES LA LÍNEA NUEVA QUE OCULTA AL ADMIN
     .order('created_at', { ascending: false })
 
@@ -32,12 +32,12 @@ export async function obtenerCuentas(): Promise<Cuenta[]> {
 
   // Traer conteo de sesiones por usuario
   const { data: sesiones } = await supabase
-    .from('training_sessions')
-    .select('profile_id')
+    .from('sesiones_entrenamiento')
+    .select('perfil_id')
 
   const nombrePerfil = (id: string) => {
     const p = perfiles.find(x => x.id === id)
-    return p ? `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Sin nombre' : 'Desconocido'
+    return p ? `${p.nombre || ''} ${p.apellido || ''}`.trim() || 'Sin nombre' : 'Desconocido'
   }
 
   // Enriquecer cada cuenta con sus relaciones
@@ -47,7 +47,7 @@ export async function obtenerCuentas(): Promise<Cuenta[]> {
     if (p.rol === 'usuario') {
       const con = conexiones?.find(c => c.usuario_id === p.id)
       cuenta.entrenadorNombre = con ? nombrePerfil(con.entrenador_id) : null
-      cuenta.totalSesiones = sesiones?.filter(s => s.profile_id === p.id).length || 0
+      cuenta.totalSesiones = sesiones?.filter(s => s.perfil_id === p.id).length || 0
     }
 
     if (p.rol === 'entrenador') {
@@ -64,7 +64,7 @@ export async function obtenerCuentas(): Promise<Cuenta[]> {
 
 export async function bloquearCuenta(id: string, bloquear: boolean): Promise<boolean> {
   const { error } = await supabase
-    .from('profiles')
+    .from('perfiles')
     .update({ cuenta_bloqueada: bloquear })
     .eq('id', id)
   if (error) { console.error(error); return false }
@@ -82,7 +82,7 @@ export async function eliminarCuenta(id: string): Promise<boolean> {
 // ============================================================
 export interface SesionAdmin {
   id: string
-  profile_id: string
+  perfil_id: string
   usuario_nombre: string
   ejercicio: string
   reps_totales: number
@@ -98,7 +98,7 @@ export interface SesionAdmin {
 
 export async function obtenerSesiones(): Promise<SesionAdmin[]> {
   const { data: sesiones, error } = await supabase
-    .from('training_sessions')
+    .from('sesiones_entrenamiento')
     .select('*')
     .order('created_at', { ascending: false })
 
@@ -106,17 +106,17 @@ export async function obtenerSesiones(): Promise<SesionAdmin[]> {
 
   // Traer nombres de los usuarios
   const { data: perfiles } = await supabase
-    .from('profiles')
-    .select('id, first_name, last_name')
+    .from('perfiles')
+    .select('id, nombre, apellido')
 
   const nombre = (id: string) => {
     const p = perfiles?.find(x => x.id === id)
-    return p ? `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Sin nombre' : 'Desconocido'
+    return p ? `${p.nombre || ''} ${p.apellido || ''}`.trim() || 'Sin nombre' : 'Desconocido'
   }
 
   return sesiones.map(s => ({
     ...s,
-    usuario_nombre: nombre(s.profile_id),
+    usuario_nombre: nombre(s.perfil_id),
   })) as SesionAdmin[]
 }
 
@@ -155,10 +155,10 @@ export async function obtenerConversaciones(): Promise<Conversacion[]> {
 
   if (error || !mensajes) { console.error(error); return [] }
 
-  const { data: perfiles } = await supabase.from('profiles').select('id, first_name, last_name')
+  const { data: perfiles } = await supabase.from('perfiles').select('id, nombre, apellido')
   const nombre = (id: string) => {
     const p = perfiles?.find(x => x.id === id)
-    return p ? `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Sin nombre' : 'Desconocido'
+    return p ? `${p.nombre || ''} ${p.apellido || ''}`.trim() || 'Sin nombre' : 'Desconocido'
   }
 
   // Agrupar por par de personas (sin importar quién envió)
@@ -188,10 +188,10 @@ export async function obtenerConversacion(idA: string, idB: string): Promise<Men
 
   if (error || !mensajes) { console.error(error); return [] }
 
-  const { data: perfiles } = await supabase.from('profiles').select('id, first_name, last_name')
+  const { data: perfiles } = await supabase.from('perfiles').select('id, nombre, apellido')
   const nombre = (id: string) => {
     const p = perfiles?.find(x => x.id === id)
-    return p ? `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Sin nombre' : 'Desconocido'
+    return p ? `${p.nombre || ''} ${p.apellido || ''}`.trim() || 'Sin nombre' : 'Desconocido'
   }
 
   return mensajes.map(m => ({
@@ -204,7 +204,7 @@ export async function obtenerConversacion(idA: string, idB: string): Promise<Men
 // Traer UNA sesión por su ID (para abrir desde el chat)
 export async function obtenerSesionPorId(sesionId: string): Promise<SesionAdmin | null> {
   const { data, error } = await supabase
-    .from('training_sessions')
+    .from('sesiones_entrenamiento')
     .select('*')
     .eq('id', sesionId)
     .maybeSingle()
@@ -212,14 +212,14 @@ export async function obtenerSesionPorId(sesionId: string): Promise<SesionAdmin 
   if (error || !data) { console.error(error); return null }
 
   const { data: perfil } = await supabase
-    .from('profiles')
-    .select('first_name, last_name')
-    .eq('id', data.profile_id)
+    .from('perfiles')
+    .select('nombre, apellido')
+    .eq('id', data.perfil_id)
     .maybeSingle()
 
   return {
     ...data,
-    usuario_nombre: perfil ? `${perfil.first_name || ''} ${perfil.last_name || ''}`.trim() : 'Usuario',
+    usuario_nombre: perfil ? `${perfil.nombre || ''} ${perfil.apellido || ''}`.trim() : 'Usuario',
   } as SesionAdmin
 }
 
@@ -237,22 +237,22 @@ export interface UsuarioConSesiones {
 
 export async function obtenerUsuariosConSesiones(): Promise<UsuarioConSesiones[]> {
   const { data: sesiones } = await supabase
-    .from('training_sessions')
-    .select('profile_id, reps_validas, reps_invalidas, created_at')
+    .from('sesiones_entrenamiento')
+    .select('perfil_id, reps_validas, reps_invalidas, created_at')
 
   const { data: perfiles } = await supabase
-    .from('profiles')
-    .select('id, first_name, last_name, email, rol')
+    .from('perfiles')
+    .select('id, nombre, apellido, correo, rol')
 
   if (!perfiles) return []
 
   // Agrupar sesiones por usuario
   const porUsuario: Record<string, { total: number, validas: number, totalReps: number, ultima: string }> = {}
   sesiones?.forEach(s => {
-    if (!porUsuario[s.profile_id]) {
-      porUsuario[s.profile_id] = { total: 0, validas: 0, totalReps: 0, ultima: s.created_at }
+    if (!porUsuario[s.perfil_id]) {
+      porUsuario[s.perfil_id] = { total: 0, validas: 0, totalReps: 0, ultima: s.created_at }
     }
-    const u = porUsuario[s.profile_id]
+    const u = porUsuario[s.perfil_id]
     u.total++
     u.validas += s.reps_validas || 0
     u.totalReps += (s.reps_validas || 0) + (s.reps_invalidas || 0)
@@ -266,8 +266,8 @@ export async function obtenerUsuariosConSesiones(): Promise<UsuarioConSesiones[]
       const u = porUsuario[p.id]
       return {
         id: p.id,
-        nombre: `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Sin nombre',
-        email: p.email || '',
+        nombre: `${p.nombre || ''} ${p.apellido || ''}`.trim() || 'Sin nombre',
+        email: p.correo || '',
         totalSesiones: u.total,
         ultimaFecha: u.ultima,
         calidadPromedio: u.totalReps > 0 ? Math.round((u.validas / u.totalReps) * 100) : 0,
@@ -279,24 +279,26 @@ export async function obtenerUsuariosConSesiones(): Promise<UsuarioConSesiones[]
 // Sesiones de UN usuario específico
 export async function obtenerSesionesDeUsuario(usuarioId: string): Promise<SesionAdmin[]> {
   const { data: sesiones, error } = await supabase
-    .from('training_sessions')
+    .from('sesiones_entrenamiento')
     .select('*')
-    .eq('profile_id', usuarioId)
+    .eq('perfil_id', usuarioId)
     .order('created_at', { ascending: false })
 
   if (error || !sesiones) return []
 
   const { data: perfil } = await supabase
-    .from('profiles')
-    .select('first_name, last_name')
+    .from('perfiles')
+    .select('nombre, apellido')
     .eq('id', usuarioId)
     .maybeSingle()
 
-  const nombre = perfil ? `${perfil.first_name || ''} ${perfil.last_name || ''}`.trim() : 'Usuario'
+  const nombre = perfil ? `${perfil.nombre || ''} ${perfil.apellido || ''}`.trim() : 'Usuario'
   return sesiones.map(s => ({ ...s, usuario_nombre: nombre })) as SesionAdmin[]
 }
-// Agrega esto al final de tu archivo lib/adminService.ts
 
+// ============================================================
+// LOGIN ADMIN
+// ============================================================
 export async function loginComoAdmin(email: string, clave: string): Promise<{ exito: boolean; error?: string }> {
   try {
     // 1. Iniciar sesión con Supabase Auth
@@ -308,9 +310,9 @@ export async function loginComoAdmin(email: string, clave: string): Promise<{ ex
     if (error) return { exito: false, error: 'Credenciales incorrectas.' }
     if (!data.user) return { exito: false, error: 'No se pudo obtener el usuario.' }
 
-    // 2. Verificar en la tabla profiles si el usuario tiene el rol 'admin'
+    // 2. Verificar en la tabla perfiles si el usuario tiene el rol 'admin'
     const { data: perfil, error: errorPerfil } = await supabase
-      .from('profiles')
+      .from('perfiles')
       .select('rol')
       .eq('id', data.user.id)
       .single()
@@ -332,8 +334,9 @@ export async function loginComoAdmin(email: string, clave: string): Promise<{ ex
     return { exito: false, error: 'Error inesperado en el servidor.' }
   }
 }
+
 // ============================================================
-// FUNCIONES DE EJERCICIOS — agrégalas al final de lib/adminService.ts
+// FUNCIONES DE EJERCICIOS
 // (gestión de ejercicios: listar, crear, editar, activar/desactivar, borrar)
 // ============================================================
 

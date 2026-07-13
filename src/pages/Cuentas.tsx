@@ -63,8 +63,8 @@ export default function Cuentas() {
     .filter(c => {
       const t = busqueda.toLowerCase()
       return !t ||
-        `${c.first_name} ${c.last_name}`.toLowerCase().includes(t) ||
-        (c.email || '').toLowerCase().includes(t)
+        `${c.nombre} ${c.apellido}`.toLowerCase().includes(t) ||
+        (c.correo || '').toLowerCase().includes(t)
     })
 
   return (
@@ -112,11 +112,11 @@ export default function Cuentas() {
               <div key={c.id} className="bg-[#1A1A1A] rounded-2xl border border-white/10 p-4">
                 <button onClick={() => setDetalle(c)} className="flex items-center gap-3 w-full text-left mb-3">
                   <div className="w-10 h-10 rounded-full bg-yellow-400 text-black flex items-center justify-center font-bold shrink-0">
-                    {(c.first_name || 'U')[0].toUpperCase()}
+                    {(c.nombre || 'U')[0].toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium truncate">{c.first_name} {c.last_name}</div>
-                    <div className="text-gray-400 text-xs truncate">{c.email}</div>
+                    <div className="font-medium truncate">{c.nombre} {c.apellido}</div>
+                    <div className="text-gray-400 text-xs truncate">{c.correo}</div>
                   </div>
                 </button>
 
@@ -182,12 +182,12 @@ export default function Cuentas() {
                     <td className="p-4">
                       <button onClick={() => setDetalle(c)} className="flex items-center gap-3 hover:text-yellow-400">
                         <div className="w-9 h-9 rounded-full bg-yellow-400 text-black flex items-center justify-center font-bold">
-                          {(c.first_name || 'U')[0].toUpperCase()}
+                          {(c.nombre || 'U')[0].toUpperCase()}
                         </div>
-                        <span className="font-medium">{c.first_name} {c.last_name}</span>
+                        <span className="font-medium">{c.nombre} {c.apellido}</span>
                       </button>
                     </td>
-                    <td className="p-4 text-gray-400">{c.email}</td>
+                    <td className="p-4 text-gray-400">{c.correo}</td>
                     <td className="p-4">
                       <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${
                         c.rol === 'entrenador' ? 'bg-yellow-400/15 text-yellow-400' : 'bg-blue-400/15 text-blue-400'
@@ -263,8 +263,8 @@ export default function Cuentas() {
           }
           message={
             accionPendiente.tipo === 'eliminar'
-              ? `¿Eliminar la cuenta de ${accionPendiente.cuenta.first_name}? Podrá volver a registrarse. Esta acción no se puede deshacer.`
-              : `¿Seguro que quieres ${accionPendiente.cuenta.cuenta_bloqueada ? 'desbloquear' : 'bloquear'} a ${accionPendiente.cuenta.first_name}?`
+              ? `¿Eliminar la cuenta de ${accionPendiente.cuenta.nombre}? Podrá volver a registrarse. Esta acción no se puede deshacer.`
+              : `¿Seguro que quieres ${accionPendiente.cuenta.cuenta_bloqueada ? 'desbloquear' : 'bloquear'} a ${accionPendiente.cuenta.nombre}?`
           }
           confirmText={accionPendiente.tipo === 'eliminar' ? 'Eliminar' : 'Confirmar'}
           cancelText="Cancelar"
@@ -298,17 +298,17 @@ function DetalleCuenta({ cuenta, onClose, onEliminar, onBloquear }: {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`Detalle de la cuenta de ${cuenta.first_name}`}
+        aria-label={`Detalle de la cuenta de ${cuenta.nombre}`}
         className="bg-[#1A1A1A] rounded-2xl border border-white/10 w-full max-w-lg max-h-[92vh] overflow-y-auto p-6 md:p-8"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-4 min-w-0">
             <div className="w-16 h-16 rounded-full bg-yellow-400 text-black flex items-center justify-center text-2xl font-bold shrink-0">
-              {(cuenta.first_name || 'U')[0].toUpperCase()}
+              {(cuenta.nombre || 'U')[0].toUpperCase()}
             </div>
             <div className="min-w-0">
-              <h2 className="text-xl font-bold truncate">{cuenta.first_name} {cuenta.last_name}</h2>
+              <h2 className="text-xl font-bold truncate">{cuenta.nombre} {cuenta.apellido}</h2>
               <span className={`text-xs ${cuenta.rol === 'entrenador' ? 'text-yellow-400' : 'text-blue-400'}`}>
                 {cuenta.rol === 'entrenador' ? 'Entrenador' : 'Usuario'}
               </span>
@@ -318,7 +318,7 @@ function DetalleCuenta({ cuenta, onClose, onEliminar, onBloquear }: {
         </div>
 
         <div className="space-y-3 mb-6">
-          <Dato icon={<Mail size={16} />} label="Correo" valor={cuenta.email || 'Sin correo'} />
+          <Dato icon={<Mail size={16} />} label="Correo" valor={cuenta.correo || 'Sin correo'} />
           <Dato icon={<User size={16} />} label="Rol" valor={cuenta.rol || 'Sin asignar'} />
           {cuenta.codigo_entrenador && (
             <Dato icon={<Hash size={16} />} label="Código de entrenador" valor={cuenta.codigo_entrenador} />

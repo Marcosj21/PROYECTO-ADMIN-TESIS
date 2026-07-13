@@ -30,13 +30,13 @@ export default function Dashboard() {
 
   async function cargarDatos() {
     try {
-      const { data: perfiles } = await supabase.from('profiles').select('id, first_name, last_name, rol')
+      const { data: perfiles } = await supabase.from('perfiles').select('id, nombre, apellido, rol')
       const usuarios = perfiles?.filter(p => p.rol === 'usuario').length || 0
       const entrenadores = perfiles?.filter(p => p.rol === 'entrenador').length || 0
 
       const { data: sesiones } = await supabase
-        .from('training_sessions')
-        .select('profile_id, ejercicio, reps_validas, reps_invalidas, created_at')
+        .from('sesiones_entrenamiento')
+        .select('perfil_id, ejercicio, reps_validas, reps_invalidas, created_at')
 
       const { data: conexiones } = await supabase
         .from('entrenador_usuario')
@@ -57,7 +57,7 @@ export default function Dashboard() {
 
       const nombre = (id: string) => {
         const p = perfiles?.find(x => x.id === id)
-        return p ? `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Sin nombre' : '—'
+        return p ? `${p.nombre || ''} ${p.apellido || ''}`.trim() || 'Sin nombre' : '—'
       }
 
       let validas = 0, invalidas = 0
@@ -72,7 +72,7 @@ export default function Dashboard() {
         const ej = s.ejercicio || 'Otro'
         porEjercicio[ej] = (porEjercicio[ej] || 0) + 1
         erroresEj[ej] = (erroresEj[ej] || 0) + (s.reps_invalidas || 0)
-        sesionesPorUsuario[s.profile_id] = (sesionesPorUsuario[s.profile_id] || 0) + 1
+        sesionesPorUsuario[s.perfil_id] = (sesionesPorUsuario[s.perfil_id] || 0) + 1
         if (s.created_at) {
           const dia = new Date(s.created_at).toLocaleDateString('es-EC', { day: '2-digit', month: 'short' })
           porDia[dia] = (porDia[dia] || 0) + 1
